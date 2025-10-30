@@ -1,0 +1,59 @@
+name: Validate MintaMaker Configuration with mintmaker-config-validator
+author: Hozifa Wasfy
+branding:
+  icon: check
+  color: green
+description: |
+  Validate Mintmaker Configuration with renovate-config-validator.
+inputs:
+  config_file:
+    description: |
+      Renovate Configuration file
+      By default, it Validates every file that match a renovate configuration files. 
+
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Validate Renovate Configuration with renovate-config-validator
+      run: |
+        set -eu
+
+        if [ -f $CONFIG_FILE_PATH ]; then
+          echo "Validating config_file: " "$CONFIG_FILE_PATH"
+          
+          config_path="$(pwd)/$CONFIG_FILE_PATH"
+          echo $config_path
+          
+          podman run --rm \
+          -v $config_path:/workspace/renovate.json:ro,Z \
+          quay.io/konflux-ci/mintmaker-renovate-image:latest \
+          renovate-config-validator /workspace/renovate.json
+
+          echo "finished validating"
+          exit 0
+        fi
+        
+        mkdir /tmp/renovate-configs
+
+        renovate_file=$(find . -name "*renovate*")
+
+        for f in $renovate_files; do
+          if [ -f $f ]; then
+            cp $f /tmp/renovate-configs
+          fi
+        done 
+
+        if [ -z $(ls /tmp/renovate-configs) ]; then
+          echo "No config files found"
+          exit 1
+        fi
+
+        podman run --rm \
+        -v /tmp/renovate-configs:/workspace/renovate-configs\
+        quay.io/konflux-ci/mintmaker-renovate-image:latest \
+        renovate-config-validator /workspace/renovate-configs/*
+
+      shell: bash
+      env:
+        CONFIG_FILE_PATH: ${{inputs.config_file}}

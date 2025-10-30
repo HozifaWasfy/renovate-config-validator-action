@@ -1,0 +1,15 @@
+name: "Validate renovate.json config file"
+
+on:
+  push:
+    branches: 
+      - main
+   
+jobs:
+  config-file-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          config_file: test/renovate.json
