@@ -11,7 +11,7 @@ inputs:
       Renovate Configuration file
       By default, it Validates every file that match a renovate configuration files. 
 
-    required: true
+    required: false
 runs:
   using: composite
   steps:
@@ -28,10 +28,18 @@ runs:
           podman run --rm \
           -v $config_path:/workspace/renovate.json:ro,Z \
           quay.io/konflux-ci/mintmaker-renovate-image:latest \
-          renovate-config-validator /workspace/renovate.json
+          renovate-config-validator /workspace/renovate.json > validation.log
+
+          cat validation.log
 
           echo "finished validating"
-          exit 0
+          
+          if grep -qi "ERROR" validation.log; then
+            exit 1
+          else
+            exit 0
+          fi
+
         fi
         
         mkdir /tmp/renovate-configs
@@ -52,7 +60,13 @@ runs:
         podman run --rm \
         -v /tmp/renovate-configs:/workspace/renovate-configs\
         quay.io/konflux-ci/mintmaker-renovate-image:latest \
-        renovate-config-validator /workspace/renovate-configs/*
+        renovate-config-validator /workspace/renovate-configs/* > validation.log
+
+        if grep -qi "ERROR" validation.log; then
+          exit 1
+        else
+          exit 0
+        fi
 
       shell: bash
       env:
